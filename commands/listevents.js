@@ -39,15 +39,11 @@ module.exports = {
 
             // Check if there are any events
             if (events.length === 0) {
-                const noEventsEmbed = new EmbedBuilder()
-                    .setColor(0xFFA500)
-                    .setTitle('📅 No Events Found')
-                    .setDescription(filter === 'upcoming'
-                        ? 'There are no upcoming events scheduled.\n\nUse `/addevent` to create a new event!'
-                        : 'There are no events in the database.\n\nUse `/addevent` to create a new event!')
-                    .setTimestamp();
-
-                return await interaction.editReply({ embeds: [noEventsEmbed] });
+                return await interaction.editReply({
+                    content: filter === 'upcoming'
+                        ? '📅 There are no upcoming events to list.\n\nUse `/addevent` to create a new event!'
+                        : '📅 There are no events to list.\n\nUse `/addevent` to create a new event!'
+                });
             }
 
             // Create the main embed
