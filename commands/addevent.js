@@ -25,7 +25,7 @@ module.exports = {
                 .setRequired(false)),
 
     async execute(interaction) {
-        await interaction.deferReply();
+        await interaction.deferReply({ ephemeral: true });
 
         try {
             // Get all the options
