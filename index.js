@@ -2,6 +2,7 @@ require('dotenv').config();
 const fs = require('node:fs');
 const path = require('node:path');
 const { Client, GatewayIntentBits, Events, Collection } = require('discord.js');
+const { testConnection } = require('./database');
 
 // Create a new client instance
 const client = new Client({
@@ -34,9 +35,12 @@ for (const file of commandFiles) {
 }
 
 // When the client is ready, run this code (only once)
-client.once(Events.ClientReady, readyClient => {
+client.once(Events.ClientReady, async readyClient => {
     console.log(`✅ Bot is online! Logged in as ${readyClient.user.tag}`);
     console.log(`📊 Serving ${readyClient.guilds.cache.size} server(s)`);
+
+    // Test database connection
+    await testConnection();
 });
 
 // Handle slash command interactions

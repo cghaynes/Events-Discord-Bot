@@ -6,13 +6,19 @@
   "scripts": {
     "start": "node index.js",
     "deploy": "node deploy-commands.js",
+    "setup-db": "node setup-database.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["discord", "bot", "discord.js"],
+  "keywords": [
+    "discord",
+    "bot",
+    "discord.js"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "discord.js": "^14.24.2",
-    "dotenv": "^17.2.3"
+    "dotenv": "^17.2.3",
+    "mysql2": "^3.15.3"
   }
 }
