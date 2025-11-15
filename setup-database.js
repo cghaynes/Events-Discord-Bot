@@ -33,13 +33,48 @@ async function setupDatabase() {
                 created_by VARCHAR(255) NOT NULL,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 guild_id VARCHAR(255) NOT NULL,
+                announcement_message_id VARCHAR(255),
+                announcement_channel_id VARCHAR(255),
+                notifications_sent BOOLEAN DEFAULT FALSE,
                 INDEX idx_guild_id (guild_id),
-                INDEX idx_event_date (event_date)
+                INDEX idx_event_date (event_date),
+                INDEX idx_notifications (notifications_sent, event_date)
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         `;
 
         await connection.query(createEventsTable);
         console.log('✅ Events table created or already exists');
+
+        // Add new columns if they don't exist (migration)
+        try {
+            await connection.query(`
+                ALTER TABLE events
+                ADD COLUMN IF NOT EXISTS announcement_message_id VARCHAR(255),
+                ADD COLUMN IF NOT EXISTS announcement_channel_id VARCHAR(255),
+                ADD COLUMN IF NOT EXISTS notifications_sent BOOLEAN DEFAULT FALSE
+            `);
+            console.log('✅ Events table updated with announcement tracking columns');
+        } catch (error) {
+            // Columns might already exist, that's okay
+        }
+
+        // Create event_interests table
+        const createEventInterestsTable = `
+            CREATE TABLE IF NOT EXISTS event_interests (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                event_id INT NOT NULL,
+                user_id VARCHAR(255) NOT NULL,
+                guild_id VARCHAR(255) NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                UNIQUE KEY unique_interest (event_id, user_id),
+                FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
+                INDEX idx_event_id (event_id),
+                INDEX idx_user_id (user_id)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        `;
+
+        await connection.query(createEventInterestsTable);
+        console.log('✅ Event interests table created or already exists');
 
         // Check if old host columns exist and drop them (migration)
         try {

@@ -15,7 +15,7 @@ module.exports = {
                 )),
 
     async execute(interaction) {
-        await interaction.deferReply();
+        await interaction.deferReply({ ephemeral: true });
 
         try {
             const filter = interaction.options.getString('filter') || 'upcoming';

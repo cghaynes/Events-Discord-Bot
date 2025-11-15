@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
+const { SlashCommandBuilder, EmbedBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { pool } = require('../database');
 
 module.exports = {
@@ -81,6 +81,89 @@ module.exports = {
                 ]
             );
 
+            // Post announcement to channel if configured
+            const announcementChannelId = process.env.ANNOUNCEMENT_CHANNEL_ID;
+            if (announcementChannelId && announcementChannelId !== 'your_channel_id_here') {
+                try {
+                    const announcementChannel = await interaction.guild.channels.fetch(announcementChannelId);
+
+                    if (announcementChannel && announcementChannel.isTextBased()) {
+                        // Get or create the Events Notifier role
+                        const roleName = process.env.NOTIFIER_ROLE_NAME || 'Events Notifier';
+                        let notifierRole = interaction.guild.roles.cache.find(r => r.name === roleName);
+
+                        if (!notifierRole) {
+                            try {
+                                notifierRole = await interaction.guild.roles.create({
+                                    name: roleName,
+                                    color: 0x3498db,
+                                    reason: 'Events Notifier role created for event announcements',
+                                    mentionable: true
+                                });
+                                console.log(`[INFO] Created Events Notifier role for announcements`);
+                            } catch (roleError) {
+                                console.error('Error creating role for announcement:', roleError);
+                            }
+                        }
+
+                        // Create announcement embed
+                        const timestamp = Math.floor(new Date(dateTimeString).getTime() / 1000);
+                        const announcementEmbed = new EmbedBuilder()
+                            .setColor(0x5865F2)
+                            .setTitle(`📅 New Event: ${eventName}`)
+                            .setDescription(description)
+                            .addFields(
+                                {
+                                    name: '🕐 Date & Time',
+                                    value: `<t:${timestamp}:F>\n<t:${timestamp}:R>`,
+                                    inline: false
+                                },
+                                {
+                                    name: '👥 Interested',
+                                    value: '0 people',
+                                    inline: true
+                                }
+                            )
+                            .setFooter({ text: `Event ID: #${result.insertId} • Created by ${interaction.user.username}` })
+                            .setTimestamp();
+
+                        if (imageUrl) {
+                            announcementEmbed.setImage(imageUrl);
+                        }
+
+                        // Create the Interested button
+                        const interestedButton = new ButtonBuilder()
+                            .setCustomId(`event_interested_${result.insertId}`)
+                            .setLabel('Interested')
+                            .setEmoji('⭐')
+                            .setStyle(ButtonStyle.Primary);
+
+                        const row = new ActionRowBuilder()
+                            .addComponents(interestedButton);
+
+                        // Send the announcement with role mention and button
+                        const mentionText = notifierRole ? `${notifierRole} A new event has been scheduled!` : '📢 A new event has been scheduled!';
+
+                        const announcementMessage = await announcementChannel.send({
+                            content: mentionText,
+                            embeds: [announcementEmbed],
+                            components: [row]
+                        });
+
+                        // Update the database with the announcement message ID
+                        await pool.query(
+                            'UPDATE events SET announcement_message_id = ?, announcement_channel_id = ? WHERE id = ?',
+                            [announcementMessage.id, announcementChannelId, result.insertId]
+                        );
+
+                        console.log(`[INFO] Posted event announcement to channel ${announcementChannelId}`);
+                    }
+                } catch (channelError) {
+                    console.error('Error posting announcement:', channelError);
+                    // Don't fail the command if announcement fails
+                }
+            }
+
             // Create a nice embed for confirmation
             const embed = new EmbedBuilder()
                 .setColor(0x00FF00)
@@ -96,6 +179,14 @@ module.exports = {
 
             if (imageUrl) {
                 embed.setImage(imageUrl);
+            }
+
+            if (announcementChannelId && announcementChannelId !== 'your_channel_id_here') {
+                embed.addFields({
+                    name: '📢 Announcement',
+                    value: 'Event has been posted to the announcements channel!',
+                    inline: false
+                });
             }
 
             await interaction.editReply({ embeds: [embed] });
