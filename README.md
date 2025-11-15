@@ -8,7 +8,8 @@ A Discord bot built with discord.js v14 with event management capabilities and M
 - MySQL database integration for event storage
 - Self-assignable notification role system
 - Event management commands:
-  - `/addevent` - Create events with date/time, description, host, and optional image
+  - `/addevent` - Create events with date/time, description, and optional image
+  - `/listevents` - View all upcoming events
   - `/notifyme` - Subscribe or unsubscribe to event notifications
   - `/ping` - Replies with "Pong!"
   - `/server` - Shows server information
@@ -28,9 +29,8 @@ A Discord bot built with discord.js v14 with event management capabilities and M
 2. Click "New Application" and give it a name
 3. Go to the "Bot" section
 4. Click "Reset Token" and copy your bot token
-5. Under "Privileged Gateway Intents", enable:
-   - Server Members Intent
-   - Message Content Intent
+5. **IMPORTANT:** Under "Privileged Gateway Intents", enable:
+   - **Server Members Intent** (required for `/notifyme` command)
 6. Go to the "OAuth2" section and copy your Client ID
 
 ### Installation
@@ -93,6 +93,7 @@ A Discord bot built with discord.js v14 with event management capabilities and M
 EventsBot/
 ├── commands/           # Slash command files
 │   ├── addevent.js    # Event creation command
+│   ├── listevents.js  # List upcoming events
 │   ├── notifyme.js    # Notification role management
 │   ├── ping.js
 │   ├── server.js
@@ -136,14 +137,32 @@ Create a new event with the following options:
 - **name** (required) - The name of the event
 - **datetime** (required) - Event date and time in UTC (format: `YYYY-MM-DD HH:MM` or ISO 8601)
 - **description** (required) - Description of the event
-- **host_type** (required) - Choose "User" or "Group/Role"
-- **host_user** (optional) - Select a user if host_type is "User"
-- **host_group** (optional) - Select a role if host_type is "Group"
 - **image** (optional) - Upload an image for the event
 
 Example usage:
 ```
-/addevent name:"Team Meeting" datetime:"2024-12-25 18:30" description:"Discuss Q1 plans" host_type:User host_user:@JohnDoe
+/addevent name:"Team Meeting" datetime:"2024-12-25 18:30" description:"Discuss Q1 plans"
+```
+
+### `/listevents`
+Display all upcoming events in the server.
+
+**Options:**
+- **filter** (optional) - Choose what events to display:
+  - "Upcoming Only" (default) - Shows only future events
+  - "All Events" - Shows all events including past ones
+
+**Features:**
+- Shows up to 10 events ordered by date
+- Displays event name, description, date/time with Discord timestamps
+- Shows relative time (e.g., "in 2 days")
+- Marks past events with strikethrough when using "All Events" filter
+- Shows Event ID for reference
+
+Example usage:
+```
+/listevents
+/listevents filter:All
 ```
 
 ### `/notifyme`
@@ -180,9 +199,6 @@ The bot uses a MySQL database with the following structure:
 | event_name | VARCHAR(255) | Name of the event |
 | description | TEXT | Event description |
 | event_date | DATETIME | Event date and time (UTC) |
-| host_type | ENUM('user', 'group') | Type of host |
-| host_id | VARCHAR(255) | Discord ID of host user/role |
-| host_name | VARCHAR(255) | Name of host |
 | image_url | TEXT | URL of event image (optional) |
 | created_by | VARCHAR(255) | Discord ID of creator |
 | created_at | TIMESTAMP | Creation timestamp |

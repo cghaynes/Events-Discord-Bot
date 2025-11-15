@@ -19,22 +19,6 @@ module.exports = {
                 .setDescription('Description of the event')
                 .setRequired(true)
                 .setMaxLength(2000))
-        .addStringOption(option =>
-            option.setName('host_type')
-                .setDescription('Is the host a user or a group/role?')
-                .setRequired(true)
-                .addChoices(
-                    { name: 'User', value: 'user' },
-                    { name: 'Group/Role', value: 'group' }
-                ))
-        .addUserOption(option =>
-            option.setName('host_user')
-                .setDescription('The user hosting the event (if host type is User)')
-                .setRequired(false))
-        .addRoleOption(option =>
-            option.setName('host_group')
-                .setDescription('The role/group hosting the event (if host type is Group)')
-                .setRequired(false))
         .addAttachmentOption(option =>
             option.setName('image')
                 .setDescription('An image for the event')
@@ -48,26 +32,7 @@ module.exports = {
             const eventName = interaction.options.getString('name');
             const dateTimeString = interaction.options.getString('datetime');
             const description = interaction.options.getString('description');
-            const hostType = interaction.options.getString('host_type');
-            const hostUser = interaction.options.getUser('host_user');
-            const hostGroup = interaction.options.getRole('host_group');
             const imageAttachment = interaction.options.getAttachment('image');
-
-            // Validate host selection
-            let hostId, hostName;
-            if (hostType === 'user') {
-                if (!hostUser) {
-                    return await interaction.editReply('Please select a host user when host type is "User".');
-                }
-                hostId = hostUser.id;
-                hostName = hostUser.username;
-            } else if (hostType === 'group') {
-                if (!hostGroup) {
-                    return await interaction.editReply('Please select a host group/role when host type is "Group".');
-                }
-                hostId = hostGroup.id;
-                hostName = hostGroup.name;
-            }
 
             // Parse and validate date/time
             let eventDate;
@@ -104,15 +69,12 @@ module.exports = {
             // Insert into database
             const [result] = await pool.query(
                 `INSERT INTO events
-                (event_name, description, event_date, host_type, host_id, host_name, image_url, created_by, guild_id)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+                (event_name, description, event_date, image_url, created_by, guild_id)
+                VALUES (?, ?, ?, ?, ?, ?)`,
                 [
                     eventName,
                     description,
                     eventDate,
-                    hostType,
-                    hostId,
-                    hostName,
                     imageUrl,
                     interaction.user.id,
                     interaction.guildId
@@ -127,8 +89,6 @@ module.exports = {
                     { name: 'Event Name', value: eventName, inline: false },
                     { name: 'Description', value: description, inline: false },
                     { name: 'Date & Time (UTC)', value: `<t:${Math.floor(new Date(dateTimeString).getTime() / 1000)}:F>`, inline: false },
-                    { name: 'Host Type', value: hostType === 'user' ? 'User' : 'Group/Role', inline: true },
-                    { name: 'Host', value: hostType === 'user' ? `<@${hostId}>` : `<@&${hostId}>`, inline: true },
                     { name: 'Event ID', value: `#${result.insertId}`, inline: true }
                 )
                 .setFooter({ text: `Created by ${interaction.user.username}` })
